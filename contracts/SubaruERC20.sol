@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "hardhat/console.sol"; //import the console logging function
 
 
@@ -36,7 +36,7 @@ contract SubaruERC20 is ERC20, Ownable {
   function buy() 
         payable
         public
-        returns (uint256 tokenAmount) {
+        {
         require(msg.value > 0, "You need to send some Ether");         // Ensures that the eth value included in func is greater than 0
 
 
@@ -65,7 +65,7 @@ contract SubaruERC20 is ERC20, Ownable {
         view 
         returns(bool, uint256){
         for(uint256 i = 0; i < stakeholdersArray.length; i++){
-            if(_address == stakeholdersArray[s]) return (true, i);
+            if(_address == stakeholdersArray[i]) return (true, i);
         }
         return (false, 0);
     }
@@ -79,11 +79,12 @@ contract SubaruERC20 is ERC20, Ownable {
 
     // This function removes a stakeholder
     function removeStakeholder (address _stakeholder) 
-        public {
+        public
+         {
         (bool _isStakeholder, uint256 i) = isStakeholder(_stakeholder);
         if(_isStakeholder){
             stakeholdersArray[i] = stakeholdersArray[stakeholdersArray.length - 1];
-            stakeholders.pop();
+            stakeholdersArray.pop();
              }
 
     }
@@ -107,9 +108,11 @@ contract SubaruERC20 is ERC20, Ownable {
         uint256 _totalStakes;
         for(uint i = 0; i < stakeholdersArray.length; i++){
            _totalStakes += stakes[stakeholdersArray[i]];
-           return _totalStakes;
         }
+           return _totalStakes;
     }
+
+    mapping (address => uint256) stakingPeriod;
 
     // This creates Stake for the caller of the function
     function createStake(uint256 _stake)
@@ -118,6 +121,7 @@ contract SubaruERC20 is ERC20, Ownable {
         _burn(msg.sender, _stake);
         if(stakes[msg.sender] == 0) addStakeholder(msg.sender);
         stakes[msg.sender] = stakes[msg.sender].add(_stake);
+        stakingPeriod[msg.sender] = block.timestamp + 259200;
     }
 
     // This removes stake for the caller of the function
@@ -146,8 +150,8 @@ contract SubaruERC20 is ERC20, Ownable {
         view 
         returns(uint256){
        uint256 _totalRewards = 0;
-       for (uint256 i = 0; i < stakeholders.length; i++){
-           _totalRewards = _totalRewards.add(rewards[stakeholders[i]]);
+       for (uint256 i = 0; i < stakeholdersArray.length; i++){
+           _totalRewards = _totalRewards.add(rewards[stakeholdersArray[i]]);
        }
        return _totalRewards;
    }
@@ -160,35 +164,30 @@ contract SubaruERC20 is ERC20, Ownable {
         return stakes[_stakeholder] / 100;
     }
 
-    // mapping (address => uint256) public expiryOf;
-
-    // uint private claimPeriod = 604800;
-
-    // This distributes rewards to all stakeholders
-    function distributeRewards()
-       public
-       onlyOwner
-   {
-       for (uint256 i = 0; i < stakeholders.length; i++){
-           address stakeholder = stakeholders[i];
-           uint256 reward = calculateReward(stakeholder);
-           rewards[stakeholder] = rewards[stakeholder] + reward;      
-       
-       }
-   }
 
     // This allows the stakeholder to claim his rewards.
     function claimReward()
        public
-       returns(bool)
+   {
+       uint256 reward;
+       (bool _isStakeholder,) = isStakeholder(msg.sender);
+       require(_isStakeholder);
+      if(stakingPeriod[msg.sender] < block.timestamp && block.timestamp < stakingPeriod[msg.sender] + 172800){
+	 reward = calculateRewards(msg.sender);
+           rewards[msg.sender] = rewards[msg.sender] + reward;
+	}
+	reward = 0;
+	rewards[msg.sender] = rewards[msg.sender] + reward;
+   }
+
+//    This allows the stakeholder to withdraw his rewards
+     function withdrawReward()
+       public
    {
        uint256 reward = rewards[msg.sender];
        rewards[msg.sender] = 0;
        _mint(msg.sender, reward);
-       return true;
    }
     
-    function eraseReward()
-
 }
 
