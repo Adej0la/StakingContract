@@ -11,15 +11,15 @@ import "hardhat/console.sol"; //import the console logging function
 contract SubaruERC20 is ERC20, Ownable {
  using SafeMath for uint256;
 
-    address payable private msgSender = payable(_msgSender());
+    address private msgSender = _msgSender();
     uint _totalSupply = 1000;
-    uint256 public tokensPerEth;
+    uint256 public tokensPerEth = 10;
     event Bought(address _buyer, uint _amountOfETH, uint _amountOfToken);
 
 
     // Initializes a total capped supply of 1,000 tokens on deployment
     constructor() ERC20("Subaru", "SBU") {
-        _mint(msgSender, _totalSupply * 10 ** decimals());       
+        _mint(msgSender, _totalSupply * 10 ** uint256(decimals()));       
 
     }
 
@@ -32,27 +32,28 @@ contract SubaruERC20 is ERC20, Ownable {
             return tokensPerEth;
         }
 
-    // This allows users to buy tokens
+   // This allows users to buy tokens
   function buy() 
         payable
         public
         {
-        require(msg.value > 0, "You need to send some Ether");         // Ensures that the eth value included in func is greater than 0
+     // Ensures that the eth value sent to the contract is greater than 0
+        require(msg.value > 0, "You need to send some Ether");         
+        
+    // The eth amount of the total tokens to be bought
+        uint256 buyAmount = msg.value * tokensPerEth;        
 
+    // Requires that token owner has enough tokens to sell to user
+        require(balanceOf(msgSender) >= buyAmount);
 
-        uint256 buyAmount = msg.value * tokensPerEth;        // The eth amount of the total tokens to be bought
+    // Transfer tokens to the caller of this function
+       _transfer(msgSender, msg.sender, buyAmount);        
 
-
-        uint256 contractBalance = balanceOf(address(this));
-        require(buyAmount <= contractBalance, "Not enough tokens in the reserve");
-
-       (bool sent) =  transfer(msg.sender, buyAmount);        // Transfer tokens to the caller of this function
-
-       require(sent, "Failed to transfer token to user");
+    //    require(sent, "Failed to transfer token to user");
         
         emit Bought(msg.sender, msg.value, buyAmount);        // Emit the event
 
-        (sent,) = msgSender.call{value: msg.value}("");
+        (bool sent,) = payable(msgSender).call{value: msg.value}("");
         require(sent, "failed to receive ETH from the user");
 
     }
