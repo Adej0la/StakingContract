@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "hardhat/console.sol"; //import the console logging function
 
 
-contract SubaruERC20 is ERC20, Ownable {
+contract SubaruStakingToken is ERC20, Ownable {
  using SafeMath for uint256;
 
     address private msgSender = _msgSender();
@@ -73,9 +73,11 @@ contract SubaruERC20 is ERC20, Ownable {
 
     // This function adds a stakeholder
     function addStakeholder (address _stakeholder)
-        public {
+        public
+        returns (bool) {
         (bool _isStakeholder, ) = isStakeholder(_stakeholder);
         if(!_isStakeholder) stakeholdersArray.push(_stakeholder);
+        return true;
     }
 
     // This function removes a stakeholder
@@ -118,11 +120,13 @@ contract SubaruERC20 is ERC20, Ownable {
     // This creates Stake for the caller of the function
     function createStake(uint256 _stake)
         public
+        returns (bool)
     {
         _burn(msg.sender, _stake);
         if(stakes[msg.sender] == 0) addStakeholder(msg.sender);
         stakes[msg.sender] = stakes[msg.sender].add(_stake);
         stakingPeriod[msg.sender] = block.timestamp + 259200;
+        return true;
     }
 
     // This removes stake for the caller of the function
